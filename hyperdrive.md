@@ -153,7 +153,7 @@ However if we look a the flat-tree notation for the two trees:
 8
 ```
 
-We'll notice that the hash stored at 3 will be the same for both trees since the first four blocks are the same. Since we also send uncle hashes when sending a block of data we'll receive the hash for 3 when we request any block. If we maintain a simple index that maps a hash into the range of data it covers we can detect that we already have the data spanning 3 and we won't need to re-download that from another person.
+We'll notice that the hash stored at 3 will be the same for both trees since the first four blocks are the same. Since we also send uncle hashes when sending a block of data, we'll receive the hash for 3 when we request any block. If we maintain a simple index that maps a hash into the range of data it covers we can detect that we already have the data spanning 3 and we won't need to re-download that from another person.
 
 ```
 1 -> (a, b)
@@ -165,37 +165,25 @@ This means that two datasets share a similar sequence of data the merkle tree he
 
 ## Signed Merkle Trees
 
-As described above the top hash of a merkle tree is the hash of all its content. This has both advantages and disadvanteges.
+As described above the top hash of a merkle tree is the hash of all its content. This has both advantages and disadvantages. An advantage is that you can always reproduce a merkle tree simply by having the data contents of a merkle tree. However, every time you add content to your data set, your merkle tree hash changes and you'll need to re-distribute the new hash.
 
-An advantage is that you can always reproduce a merkle tree simply by having the data contents of a merkle tree.
+Using a bit of cryptography we can make our merkle tree appendable. First, generate a cryptographic key pair that can be used to sign data using [ed25519](https://ed25519.cr.yp.to/) keys, as they are compact in size (32 byte public keys). A key pair (public key, secret key) can be used to sign data. Signing data means that if you trust a public key and you receive data and a signature for that data you can verify that a signature was generated with the corresponding secret key.
 
-A disadvantage is every time you add content to your data set your merkle tree hash changes and you'll need to re-distribute the new hash.
+Instead of distributing the hash of a merkle tree, we instead distribute our public key. This allows us to then use our secret key to sign the merkle trees of our data set every time we append new data to it.
 
-Using a bit of cryptography however we can make our merkle tree appendable. First generate a cryptographic key pair that can be used to sign data using [ed25519](https://ed25519.cr.yp.to/) keys, as they are compact in size (32 byte public keys). A key pair (public key, secret key) can be used to sign data. Signing data means that if you trust a public key and you receive data and a signature for that data you can verify that a signature was generated with the corresponding secret key.
-
-How does this relate to merkle trees? Instead of distributing the hash of a merkle tree we can distribute our public key instead. We then use our secret key to continously sign the merkle trees of our data set every time we append to it.
-
-Assume we have a data set with only a single item in it `(a)` and a key pair `(secret, public)`:
+Assume we have a dataset with only a single item in it `(a)` and a key pair `(secret, public)`:
 
 ```
 (a)
 ```
 
-We generate a merkle tree for this data set which will have the roots `0` and sign the hash of these roots (see the merkle tree section) with our secret key.
+We generate a merkle tree for this dataset which will have the root `0` and sign the hash of the root (see the merkle tree section) with our secret key. If we want to send `a` to another person (and they trust our public key) we simply send `a` and the uncles needed to generate the roots plus our signature.
 
-If we want to send `a` to another person and they trust our public key we simply send `a` and the uncles needed to generate the roots plus our signature.
-
-If we append a new item to our data set we simply do the same thing:
-
-```
-(a, b)
-```
-
-Notice that all new signatures verify the entire dataset since they all sign a merkle tree that spans all data. This serves two purposes. First of all it makes sure that the dataset publisher cannot change old data. It also ensures that the publisher cannot share different versions of the same dataset to different persons without the other people noticing it (at some point they'll get a signature for the same node index that has different hashes if they talk to multiple people).
+All new signatures verify the entire dataset since they all sign a merkle tree that spans all data. This serves two purposes. It makes sure that the dataset publisher cannot change old data. It also ensures that the publisher cannot share different versions of the same dataset to different persons without the other people noticing it (at some point they'll get a signature for the same node index that has different hashes if they talk to multiple people).
 
 This technique has the added benefit that you can always convert a signed merkle tree to a normal unsigned one if you wish (or turn an unsigned tree into a signed tree).
 
-In general you should send as wide as possible signed tree back when using signed merkle trees as that lowers the amount of signatures the other person needs to verify which has a positive performance impact for some platforms. It will also allow other users to more quickly detect if a tree has duplicated content.
+In general you should send as wide as possible signed tree back when using signed merkle trees. This means that the the other person needs to verify fewer signatures, which increases performance for some platforms. It will also make it more efficient to detect if a tree has duplicated content.
 
 ## Block Tree Digest
 
@@ -217,17 +205,11 @@ In the merkle tree example for from earlier we ended up sending two hashes `(2, 
 
 Now if we ask for block `1` afterwards (`2` in flat tree notation) the other person doesn't need to send us any new hashes since we already received the hash for `2` when fetching block `0`.
 
-If we only use non-signed merkle trees the other person can easily calculate which hashes we already have if we tell them which blocks we've got.
+If we only use non-signed merkle trees, the other person can easily calculate which hashes we already have after we tell them which blocks we've got.
 
-This however isn't always possible if we use a signed merkle tree since the roots are changing. In general it also useful to be able to communicate that you have some hashes already without disclosing all the blocks you have.
+This however isn't always possible if we use a signed merkle tree since the roots are changing. In general it also useful to be able to communicate that you have some hashes already without disclosing all the blocks you have. To communicate which hashes we have, we need to send two things: which uncles we have and whether or not we have any parent node that can verify the tree. Looking at the above tree that means if we want to fetch block `0` we need to communicate whether of not we already have the uncles `(2, 5)` and the parent `3`.
 
-To communicate which hashes we have just have to communicate two things: which uncles we have and whether or not we have any parent node that can verify the tree.
-
-Looking at the above tree that means if we want to fetch block `0` we need to communicate whether of not we already have the uncles `(2, 5)` and the parent `3`. This information can be compressed into very small bit vector using the following scheme.
-
-Let the trailing bit donate whether or not the leading bit is a parent and not a uncle. Let the previous trailing bits denote wheather or not we have the next uncle.
-
-For example for block `0` the following bit vector `1011` is decoded the following way
+This information can be compressed into very small bit vector using the following scheme. Let the trailing bit donate whether or not the leading bit is a parent and not a uncle. Let the previous trailing bits denote wheather or not we have the next uncle. For example for block `0` the following bit vector `1011` is decoded the following way:
 
 ```
 // for block 0
@@ -242,4 +224,4 @@ So using this digest the person can easily figure out that they only need to sen
 
 The bit vector `1` (only contains a single one) means that we already have all the hashes we need so just send us the block.
 
-These digests are very compact in size, only `(log2(number-of-blocks) + 2) / 8` bytes needed in the worst case. For example if you are sharing one trillion blocks of data the digest would be `(log2(1000000000000) + 2) / 8 ~= 6` bytes long.
+These digests are very compact in size, only `(log2(number-of-blocks) + 2) / 8` bytes needed in the worst case. For example, if you are sharing one trillion blocks of data the digest would be `(log2(1000000000000) + 2) / 8 ~= 6` bytes long.
