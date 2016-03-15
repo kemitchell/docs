@@ -2,6 +2,13 @@
 
 Hyperdrive is the peer-to-peer data distribution protocol that powers Dat. It consists of two parts. First there is hypercore which is the core protocol and swarm that handles distributing append-only logs of any binary data. The second part is hyperdrive which adds a filesystem specific protocol on top of hypercore.
 
+Throughout this document we'll use following tree terminology:
+
+* `parent` - a node that has two children (odd numbered)
+* `leaf` - a node with no children (even numbered)
+* `sibling` - the other node with whom a node has a mutual parent
+* `uncle` - a parent's sibling
+
 ## Hypercore
 
 The goal of hypercore is to distribute append-only logs across a network of peers. Peers download parts of the logs from other peers and can choose to only download the parts of a log they care about. Logs can contain arbitrary binary data payloads.
@@ -10,25 +17,25 @@ The goal of hypercore is to distribute append-only logs across a network of peer
 
 ### Flat Trees
 
-A flat tree is a simple way represent a binary tree as a list. It also allows you to identify every node of a binary tree with a numeric index. Both of these properties makes it useful in distributed applications to simplify wire protocols that uses tree structures.
-
-Flat trees are described in [PPSP RFC 7574 as "Bin numbers"](https://datatracker.ietf.org/doc/rfc7574/?include_text=1) and a node version is available through the [flat-tree](https://github.com/mafintosh/flat-tree) module.
+A flat tree is a simple way represent a binary tree as a list, associating every node of a binary tree with a numeric index. This simplifies the wire protocol for distributed applications that use tree structures. Flat trees are described in [PPSP RFC 7574 as "Bin numbers"](https://datatracker.ietf.org/doc/rfc7574/?include_text=1) and has been implemented in node (see the [flat-tree](https://github.com/mafintosh/flat-tree) module.)
 
 A sample flat tree spanning 4 blocks of data looks like this:
 
 ```
 0
   1
-2
+2  
     3
 4
   5
 6
 ```
 
-The even numbered entries represent data blocks (leaf nodes) and odd numbered entries represent parent nodes that have two children.
+1 is the parent of (0, 2), 5 is the parent of (4, 6), and 3 is the parent of (1, 5).
 
-The depth of an tree node can be calculated by counting the number of trailing 1s a node has in binary notation.
+The even numbered entries represent data blocks (leaf nodes) and odd numbered entries represent parent nodes that have exactly two children.
+
+The depth of a tree node can be calculated by counting the number of trailing 1s a node has in binary notation.
 
 ```
 5 in binary = 101 (one trailing 1)
@@ -36,11 +43,7 @@ The depth of an tree node can be calculated by counting the number of trailing 1
 4 in binary = 100 (zero trailing 1s)
 ```
 
-1 is the parent of (0, 2), 5 is the parent of (4, 6), and 3 is the parent of (1, 5).
-
-If the number of leaf nodes is a power of 2 the flat tree will only have a single root.
-
-Otherwise it'll have more than one. As an example here is a tree with 6 leafs:
+If the number of leaf nodes is a power of 2, the flat tree will only have a single root. Otherwise it'll have more than one. Here is an example tree with six leafs and two roots (3 and 9).
 
 ```
 0
@@ -56,22 +59,14 @@ Otherwise it'll have more than one. As an example here is a tree with 6 leafs:
 10
 ```
 
-The roots spanning all the above leafs are 3 an 9. Throughout this document we'll use following tree terminology:
-
-* `parent` - a node that has two children (odd numbered)
-* `leaf` - a node with no children (even numbered)
-* `sibling` - the other node with whom a node has a mutual parent
-* `uncle` - a parent's sibling
 
 ## Merkle Trees
 
-A merkle tree is a binary tree where every leaf is a hash of a data block and every parent is the hash of both of its children.
-
-Merkle trees are useful for ensuring the integrity of content.
+Merkle trees are useful for ensuring the integrity of content. A merkle tree is a binary tree where every leaf is a hash of a data block and every parent is the hash of both of its children.
 
 Let's look at an example. Assume we have 4 data blocks, `(a, b, c, d)` and let `h(x)` be a hash function (the hyperdrive stack uses sha256 per default).
 
-Using flat-tree notation the merkle tree spanning these data blocks looks like this:
+Using flat-tree notation, the merkle tree spanning these data blocks looks like this:
 
 ```
 0 = h(a)
@@ -83,9 +78,10 @@ Using flat-tree notation the merkle tree spanning these data blocks looks like t
 6 = h(d)
 ```
 
-An interesting property of merkle trees is that the node 3 hashes the entire data set. Therefore we only need to trust node 3 to verify all data. However as we learned above there will only be a single root if there is a power of two data blocks.
+An interesting property of merkle trees is that node 3 represents the entire data set using a cumulative hash. Therefore we only need to trust node 3 to verify all data in this example.
 
-Again lets expand our data set to contain 6 items `(a, b, c, d, e, f)`:
+
+What happens when we expand our data set to contain 6 items `(a, b, c, d, e, f)`, so it has two roots?
 
 ```
 0 = h(a)
@@ -101,9 +97,7 @@ Again lets expand our data set to contain 6 items `(a, b, c, d, e, f)`:
 10 = h(f)
 ```
 
-To ensure always have only a single root we'll simply hash all the roots together again. At most there will be `log2(number of data blocks)`.
-
-In addition to hashing the roots we'll also include a bin endian uint64 binary representation of the corresponding node index.
+As we learned above, there will only be a single root if the number of data blocks is an exact power of 2. So to make sure we can still reference all data with a single root, we hash all the roots together. In addition to hashing the roots we'll also include a bin endian uint64 binary representation of the corresponding node index. At most there will be `log2(number of data blocks)`.
 
 Using the two above examples the final hashes would be:
 
@@ -112,7 +106,9 @@ hash1 = h(uint64be(#3) + 3)
 hash2 = h(uint64be(#9) + 9 + uint64be(#3) + 3)
 ```
 
-Each of these hashes can be used to fully verify each of the trees. Let's look at another example. Assume we trust `hash1` and another person wants to send block `0` to us. To verify block `0` the other person would also have to send the sibling hash and uncles until it reaches a root and the other missing root hashes. For the first tree that would mean hashes `(2, 5)`.
+Each of these hashes can be used to fully verify each of the trees.
+
+Let's look at another example. Assume we trust `hash1` and another person wants to send block `0` to us. To verify block `0` the other person would also have to send the sibling hash and uncles until it reaches a root and the other missing root hashes. For the first tree that would mean hashes `(2, 5)`.
 
 Using these hashes we can reproduce `hash1` in the following way:
 
@@ -126,7 +122,7 @@ Using these hashes we can reproduce `hash1` in the following way:
 
 If `h(uint64be(#3) + 3) == hash1` then we know that data we received from the other person is correct. They sent us `a` and the corresponding hashes.
 
-Since we only need uncle hashes to verify the block the amount of hashes we need is at worst `log2(number-of-blocks)` and the roots of the merkle trees which has the same complexity.
+Since we only need the uncle hashes to verify the block, the amount of hashes we need is at worst `log2(number-of-blocks)` and the roots of the merkle trees which have the same complexity.
 
 A merkle tree generator is available on npm through the [merkle-tree-stream](https://github.com/mafintosh/merkle-tree-stream) module.
 
@@ -171,7 +167,7 @@ This means that two datasets share a similar sequence of data the merkle tree he
 
 As described above the top hash of a merkle tree is the hash of all its content. This has both advantages and disadvanteges.
 
-An advantage is that you can always reproduce a merkle tree simply by having the data contents of a merkle tree. 
+An advantage is that you can always reproduce a merkle tree simply by having the data contents of a merkle tree.
 
 A disadvantage is every time you add content to your data set your merkle tree hash changes and you'll need to re-distribute the new hash.
 
