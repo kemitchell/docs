@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>dat</title>
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="/bundle.css">
+
+</head>
+<body>
+<div id="choo-root" class="minidocs">
+    <div class="_ece1ad43 minidocs-sidebar">
+    <div class="minidocs-header">
+      <h1><a href="/"><img src="dat-data.png" alt="dat" class="minidocs-logo" /></a></h1>
+    </div>
+    <div class="minidocs-contents">
+      <div class="h1 depth-1">Introduction</div><div class="depth-2">
+          <a href="/README" class="content-link ">Welcome to Dat</a>
+        </div><div class="depth-2">
+          <a href="/how-dat-works" class="content-link ">How Dat works</a>
+        </div><div class="h1 depth-1">Ecosystem</div><div class="depth-2">
+          <a href="/ecosystem" class="content-link ">Overview</a>
+        </div><div class="h1 depth-1">Specification</div><div class="depth-2">
+          <a href="/hyperdrive" class="content-link ">hyperdrive</a>
+        </div><div class="depth-2">
+          <a href="/meta.dat" class="content-link ">meta.dat</a>
+        </div><div class="h1 depth-1">References</div><div class="depth-2">
+          <a href="/api" class="content-link active">API</a>
+        </div><div class="depth-2">
+          <a href="/diy-dat" class="content-link ">DIY Dat</a>
+        </div>
+      <br />
+      <br />
+    </div>
+  </div>
+    <div class="_d13e94c1 minidocs-main">
+      <div class="markdown-body">
+        <div class="_b525f68d minidocs-content">
+    
+    <div><h1 id="hyperdrive-hypercore-specification">Hyperdrive + Hypercore Specification</h1>
+<h2 id="draft-version-1">DRAFT Version 1</h2>
+<p>Hyperdrive is the peer-to-peer data distribution protocol that powers Dat. It consists of two parts. First there is hypercore which is the core protocol and swarm that handles distributing append-only logs of any binary data. The second part is hyperdrive which adds a filesystem specific protocol on top of hypercore.</p>
+<h2 id="hypercore">Hypercore</h2>
+<p>The goal of hypercore is to distribute append-only logs across a network of peers. Peers download parts of the logs from other peers and can choose to only download the parts of a log they care about. Logs can contain arbitrary binary data payloads.</p>
+<p>A core goal is to be as simple and pragmatic as possible. This allows for easier implementations of clients which is an often overlooked property when implementing distributed systems. First class browser support is also an important goal as p2p data sharing in browsers is becoming more viable every day as WebRTC matures.</p>
+<p>It also tries to be modular and export responsibilities to external modules whenever possible. Peer discovery is a good example of this as it handled by 3rd party modules that wasn&#39;t written with hyperdrive in mind. A benefit of this is a much smaller core implementation that can focus on smaller and simpler problems.</p>
+<p>Prioritized synchronization of parts of a feed is also at the heart of hyperdrive as this allows for fast streaming with low latency of data such as structured datasets (wikipedia, genomic datasets), linux containers, audio, videos, and much more. To allow for low latency streaming another goal is also to keep verifiable block sizes as small as possible - even with huge data feeds.</p>
+<p>The protocol itself draws heavy inspiration from existing file sharing systems such as BitTorrent and <a href="https://datatracker.ietf.org/doc/rfc7574/?include_text=1">PPSP</a></p>
+<h2 id="how-hypercore-works">How Hypercore works</h2>
+<h3 id="flat-in-order-trees">Flat In-Order Trees</h3>
+<p>A Flat In-Order Tree is a simple way represent a binary tree as a list. It also allows you to identify every node of a binary tree with a numeric index. Both of these properties makes it useful in distributed applications to simplify wire protocols that uses tree structures.</p>
+<p>Flat trees are described in <a href="https://datatracker.ietf.org/doc/rfc7574/?include_text=1">PPSP RFC 7574 as &quot;Bin numbers&quot;</a> and a node version is available through the <a href="https://github.com/mafintosh/flat-tree">flat-tree</a> module.</p>
+<p>A sample flat tree spanning 4 blocks of data looks like this:</p>
+<pre><code>0
+  1
+2
+    3
+4
+  5
+6
+</code></pre><p>The even numbered entries represent data blocks (leaf nodes) and odd numbered entries represent parent nodes that have two children.</p>
+<p>The depth of an tree node can be calculated by counting the number of trailing 1s a node has in binary notation.</p>
+<pre><code><span class="hljs-symbol">5 </span>in binary = <span class="hljs-number">101</span> (one trailing <span class="hljs-number">1</span>)
+<span class="hljs-symbol">3 </span>in binary = <span class="hljs-number">011</span> (two trailing <span class="hljs-number">1</span>s)
+<span class="hljs-symbol">4 </span>in binary = <span class="hljs-number">100</span> (zero trailing <span class="hljs-number">1</span>s)
+</code></pre><p>1 is the parent of (0, 2), 5 is the parent of (4, 6), and 3 is the parent of (1, 5).</p>
+<p>If the number of leaf nodes is a power of 2 the flat tree will only have a single root.</p>
+<p>Otherwise it&#39;ll have more than one. As an example here is a tree with 6 leafs:</p>
+<pre><code>0
+  1
+2
+    3
+4
+  5
+6
+
+8
+  9
+10
+</code></pre><p>The roots spanning all the above leafs are 3 an 9. Throughout this document we&#39;ll use following tree terminology:</p>
+<ul>
+<li><code>parent</code> - a node that has two children (odd numbered)</li>
+<li><code>leaf</code> - a node with no children (even numbered)</li>
+<li><code>sibling</code> - the other node with whom a node has a mutual parent</li>
+<li><code>uncle</code> - a parent&#39;s sibling</li>
+</ul>
+<h2 id="merkle-trees">Merkle Trees</h2>
+<p>A merkle tree is a binary tree where every leaf is a hash of a data block and every parent is the hash of both of its children.</p>
+<p>Merkle trees are useful for ensuring the integrity of content.</p>
+<p>Let&#39;s look at an example. Assume we have 4 data blocks, <code>(a, b, c, d)</code> and let <code>h(x)</code> be a hash function (the hyperdrive stack uses sha256 per default).</p>
+<p>Using flat-tree notation the merkle tree spanning these data blocks looks like this:</p>
+<pre><code><span class="hljs-number">0</span> = h(<span class="hljs-name">a</span>)
+  <span class="hljs-number">1</span> = h(<span class="hljs-number">0</span> + <span class="hljs-number">2</span>)
+<span class="hljs-number">2</span> = h(<span class="hljs-name">b</span>)
+    <span class="hljs-number">3</span> = h(<span class="hljs-number">1</span> + <span class="hljs-number">5</span>)
+<span class="hljs-number">4</span> = h(<span class="hljs-name">c</span>)
+  <span class="hljs-number">5</span> = h(<span class="hljs-number">4</span> + <span class="hljs-number">6</span>)
+<span class="hljs-number">6</span> = h(<span class="hljs-name">d</span>)
+</code></pre><p>An interesting property of merkle trees is that the node 3 hashes the entire data set. Therefore we only need to trust node 3 to verify all data. However as we learned above there will only be a single root if there is a power of two data blocks.</p>
+<p>Again lets expand our data set to contain 6 items <code>(a, b, c, d, e, f)</code>:</p>
+<pre><code><span class="hljs-number">0</span> = h(<span class="hljs-name">a</span>)
+  <span class="hljs-number">1</span> = h(<span class="hljs-number">0</span> + <span class="hljs-number">2</span>)
+<span class="hljs-number">2</span> = h(<span class="hljs-name">b</span>)
+    <span class="hljs-number">3</span> = h(<span class="hljs-number">1</span> + <span class="hljs-number">5</span>)
+<span class="hljs-number">4</span> = h(<span class="hljs-name">c</span>)
+  <span class="hljs-number">5</span> = h(<span class="hljs-number">4</span> + <span class="hljs-number">6</span>)
+<span class="hljs-number">6</span> = h(<span class="hljs-name">d</span>)
+
+<span class="hljs-number">8</span> = h(<span class="hljs-name">e</span>)
+  <span class="hljs-number">9</span> = h(<span class="hljs-number">8</span> + <span class="hljs-number">10</span>)
+<span class="hljs-number">10</span> = h(<span class="hljs-name">f</span>)
+</code></pre><p>To ensure always have only a single root we&#39;ll simply hash all the roots together again. At most there will be <code>log2(number of data blocks)</code>.</p>
+<p>In addition to hashing the roots we&#39;ll also include a bin endian uint64 binary representation of the corresponding node index.</p>
+<p>Using the two above examples the final hashes would be:</p>
+<pre><code>hash1 = h(<span class="hljs-name">uint64be</span>(<span class="hljs-name">#3</span>) + <span class="hljs-number">3</span>)
+hash2 = h(<span class="hljs-name">uint64be</span>(<span class="hljs-name">#9</span>) + <span class="hljs-number">9</span> + uint64be(<span class="hljs-name">#3</span>) + <span class="hljs-number">3</span>)
+</code></pre><p>Each of these hashes can be used to fully verify each of the trees. Let&#39;s look at another example. Assume we trust <code>hash1</code> and another person wants to send block <code>0</code> to us. To verify block <code>0</code> the other person would also have to send the sibling hash and uncles until it reaches a root and the other missing root hashes. For the first tree that would mean hashes <code>(2, 5)</code>.</p>
+<p>Using these hashes we can reproduce <code>hash1</code> in the following way:</p>
+<pre><code><span class="hljs-number">0</span> = h(<span class="hljs-name">block</span> received)
+  <span class="hljs-number">1</span> = h(<span class="hljs-number">0</span> + <span class="hljs-number">2</span>)
+<span class="hljs-number">2</span> = (<span class="hljs-name">hash</span> received)
+    <span class="hljs-number">3</span> = h(<span class="hljs-number">1</span> + <span class="hljs-number">5</span>)
+  <span class="hljs-number">5</span> = (<span class="hljs-name">hash</span> received)
+</code></pre><p>If <code>h(uint64be(#3) + 3) == hash1</code> then we know that data we received from the other person is correct. They sent us <code>a</code> and the corresponding hashes.</p>
+<p>Since we only need uncle hashes to verify the block the amount of hashes we need is at worst <code>log2(number-of-blocks)</code> and the roots of the merkle trees which has the same complexity.</p>
+<p>A merkle tree generator is available on npm through the <a href="https://github.com/mafintosh/merkle-tree-stream">merkle-tree-stream</a> module.</p>
+<h2 id="merkle-tree-deduplication">Merkle Tree Deduplication</h2>
+<p>Merkle trees have another great property. They make it easy to deduplicate content that is similar.</p>
+<p>Assume we have two similar datasets:</p>
+<pre><code>(<span class="hljs-selector-tag">a</span>, <span class="hljs-selector-tag">b</span>, c, d, e)
+(<span class="hljs-selector-tag">a</span>, <span class="hljs-selector-tag">b</span>, c, d, f)
+</code></pre><p>These two datasets are the same except their last element is different. When generating merkle trees for the two data sets you&#39;d get two different root hashes out.</p>
+<p>However if we look a the flat-tree notation for the two trees:</p>
+<pre><code>0
+  1
+2
+    3
+4
+  5
+6
+
+8
+</code></pre><p>We&#39;ll notice that the hash stored at 3 will be the same for both trees since the first four blocks are the same. Since we also send uncle hashes when sending a block of data we&#39;ll receive the hash for 3 when we request any block. If we maintain a simple index that maps a hash into the range of data it covers we can detect that we already have the data spanning 3 and we won&#39;t need to re-download that from another person.</p>
+<pre><code><span class="hljs-symbol">1 </span>-&gt; (a, b)
+<span class="hljs-symbol">3 </span>-&gt; (a, b, c, d)
+<span class="hljs-symbol">5 </span>-&gt; (c, d)
+</code></pre><p>This means that two datasets share a similar sequence of data the merkle tree helps you detect that.</p>
+<h2 id="signed-merkle-trees">Signed Merkle Trees</h2>
+<p>As described above the top hash of a merkle tree is the hash of all its content. This has both advantages and disadvanteges.</p>
+<p>An advantage is that you can always reproduce a merkle tree simply by having the data contents of a merkle tree.</p>
+<p>A disadvantage is every time you add content to your data set your merkle tree hash changes and you&#39;ll need to re-distribute the new hash.</p>
+<p>Using a bit of cryptography however we can make our merkle tree appendable. First generate a cryptographic key pair that can be used to sign data using <a href="https://ed25519.cr.yp.to/">ed25519</a> keys, as they are compact in size (32 byte public keys). A key pair (public key, secret key) can be used to sign data. Signing data means that if you trust a public key and you receive data and a signature for that data you can verify that a signature was generated with the corresponding secret key.</p>
+<p>How does this relate to merkle trees? Instead of distributing the hash of a merkle tree we can distribute our public key instead. We then use our secret key to continously sign the merkle trees of our data set every time we append to it.</p>
+<p>Assume we have a data set with only a single item in it <code>(a)</code> and a key pair <code>(secret, public)</code>:</p>
+<pre><code>(<span class="hljs-name">a</span>)
+</code></pre><p>We generate a merkle tree for this data set which will have the roots <code>0</code> and sign the hash of these roots (see the merkle tree section) with our secret key.</p>
+<p>If we want to send <code>a</code> to another person and they trust our public key we simply send <code>a</code> and the uncles needed to generate the roots plus our signature.</p>
+<p>If we append a new item to our data set we simply do the same thing:</p>
+<pre><code>(<span class="hljs-name">a</span>, b)
+</code></pre><p>Notice that all new signatures verify the entire dataset since they all sign a merkle tree that spans all data. This serves two purposes. First of all it makes sure that the dataset publisher cannot change old data. It also ensures that the publisher cannot share different versions of the same dataset to different persons without the other people noticing it (at some point they&#39;ll get a signature for the same node index that has different hashes if they talk to multiple people).</p>
+<p>This technique has the added benefit that you can always convert a signed merkle tree to a normal unsigned one if you wish (or turn an unsigned tree into a signed tree).</p>
+<p>In general you should send as wide as possible signed tree back when using signed merkle trees as that lowers the amount of signatures the other person needs to verify which has a positive performance impact for some platforms. It will also allow other users to more quickly detect if a tree has duplicated content.</p>
+<h2 id="block-tree-digest">Block Tree Digest</h2>
+<p>When asking for a block of data we want to reduce the amount of duplicate hashes that are sent back.</p>
+<p>In the merkle tree example for from earlier we ended up sending two hashes <code>(2, 5)</code> to verify block <code>0</code>.</p>
+<pre><code>// <span class="hljs-keyword">If</span> we trust <span class="hljs-number">3</span> <span class="hljs-keyword">then</span> <span class="hljs-number">2</span> <span class="hljs-literal">and</span> <span class="hljs-number">5</span> are needed <span class="hljs-keyword">to</span> verify <span class="hljs-number">0</span>
+
+<span class="hljs-number">0</span>
+  <span class="hljs-number">1</span>
+<span class="hljs-number">2</span>
+    <span class="hljs-number">3</span>
+<span class="hljs-number">4</span>
+  <span class="hljs-number">5</span>
+<span class="hljs-number">6</span>
+</code></pre><p>Now if we ask for block <code>1</code> afterwards (<code>2</code> in flat tree notation) the other person doesn&#39;t need to send us any new hashes since we already received the hash for <code>2</code> when fetching block <code>0</code>.</p>
+<p>If we only use non-signed merkle trees the other person can easily calculate which hashes we already have if we tell them which blocks we&#39;ve got.</p>
+<p>This however isn&#39;t always possible if we use a signed merkle tree since the roots are changing. In general it also useful to be able to communicate that you have some hashes already without disclosing all the blocks you have.</p>
+<p>To communicate which hashes we have just have to communicate two things: which uncles we have and whether or not we have any parent node that can verify the tree.</p>
+<p>Looking at the above tree that means if we want to fetch block <code>0</code> we need to communicate whether of not we already have the uncles <code>(2, 5)</code> and the parent <code>3</code>. This information can be compressed into very small bit vector using the following scheme.</p>
+<p>Let the trailing bit donate whether or not the leading bit is a parent and not a uncle. Let the previous trailing bits denote wheather or not we have the next uncle.</p>
+<p>For example for block <code>0</code> the following bit vector <code>1011</code> is decoded the following way</p>
+<pre><code>// <span class="hljs-keyword">for</span> <span class="hljs-keyword">block</span> <span class="hljs-number">0</span>
+
+<span class="hljs-number">101</span>(<span class="hljs-number">1</span>) &lt;<span class="hljs-comment">-- tell us that the last bit is a parent and not an uncle</span>
+<span class="hljs-number">10</span>(<span class="hljs-number">1</span>)<span class="hljs-number">1</span> &lt;<span class="hljs-comment">-- we already have the first uncle, 2 so don't send us that</span>
+<span class="hljs-number">1</span>(<span class="hljs-number">0</span>)<span class="hljs-number">11</span> &lt;<span class="hljs-comment">-- we don't have the next uncle, 5</span>
+(<span class="hljs-number">1</span>)<span class="hljs-number">000</span> &lt;<span class="hljs-comment">-- the final bit so this is parent. we have the next parent, 3</span>
+</code></pre><p>So using this digest the person can easily figure out that they only need to send us one hash, <code>5</code>, for us to verify block <code>0</code>.</p>
+<p>The bit vector <code>1</code> (only contains a single one) means that we already have all the hashes we need so just send us the block.</p>
+<p>These digests are very compact in size, only <code>(log2(number-of-blocks) + 2) / 8</code> bytes needed in the worst case. For example if you are sharing one trillion blocks of data the digest would be <code>(log2(1000000000000) + 2) / 8 ~= 6</code> bytes long.</p>
+<h3 id="bitfield-run-length-encoding">Bitfield Run length Encoding</h3>
+<p>(talk about rle)</p>
+<h3 id="basic-privacy">Basic Privacy</h3>
+<p>(talk about the privacy features + discovery key here)</p>
+<h2 id="hypercore-feeds">Hypercore Feeds</h2>
+<p>(talk about how we use the above concepts to create a feed of data)</p>
+<h2 id="hypercore-replication-protocol">Hypercore Replication Protocol</h2>
+<p>Lets assume two peers have the identifier for a hypercore feed. This could either be the hash of the merkle tree roots described above or a public key if they want to share a signed merkle tree. The two peers wants to exchange the data verified by this tree. Lets assume the two peers have somehow connected to each other.</p>
+<p>Hypercore uses a message based protocol to exchange data. All messages sent are encoded to binary values using Protocol Buffers. Protocol Buffers are a widely supported schema based encoding support. A Protocol Buffers implementation is available on npm through the <a href="https://github.com/mafintosh/protocol-buffers">protocol-buffers</a> module.</p>
+<p>These are the types of messages the peers send to each other</p>
+<h4 id="open">Open</h4>
+<p>This should be the first message sent and is also the only message without a type. It looks like this</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Open</span> </span>{
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">bytes</span> feed = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">bytes</span> nonce = <span class="hljs-number">2</span>;
+}
+</code></pre>
+<p>The <code>feed</code> should be set to the discovery key of the Merkle Tree as specified above. The <code>nonce</code> should be set to 24 bytes of high entropy random data. When running in encrypted mode this is the only message sent unencrypted.</p>
+<p>When you are done using a channel send an empty message to indicate end-of-channel.</p>
+<h4 id="-0-handshake"><code>0</code> Handshake</h4>
+<p>The message contains the protocol handshake. It has type <code>0</code>.</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Handshake</span> </span>{
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">bytes</span> id = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">repeated</span> <span class="hljs-built_in">string</span> extensions = <span class="hljs-number">2</span>;
+}
+</code></pre>
+<p>You should send this message after sending an open message. By sending it after an open message it will be encrypted and we wont expose our peer id to a third party. The current protocol version is 0.</p>
+<h4 id="-1-have"><code>1</code> Have</h4>
+<p>You can send a have message to give the other peer information about which blocks of data you have. It has type <code>1</code>.</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Have</span> </span>{
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">uint64</span> start = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> end = <span class="hljs-number">2</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">bytes</span> bitfield = <span class="hljs-number">3</span>;
+}
+</code></pre>
+<p>If using a bitfield it should be encoded using a run length encoding described above. It is a good idea to send a have message soon as possible if you have blocks to share to reduce latency.</p>
+<h4 id="-2-want"><code>2</code> Want</h4>
+<p>You can send a have message to give the other peer information about which blocks of data you want to have. It has type <code>2</code>.</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Want</span> </span>{
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">uint64</span> start = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> end = <span class="hljs-number">2</span>;
+}
+</code></pre>
+<p>You should only send the want message if you are interested in a section of the feed that the other peer has not told you about.</p>
+<h4 id="-3-request"><code>3</code> Request</h4>
+<p>Send this message to request a block of data. You can request a block by block index or byte offset. If you are only interested
+in the hash of a block you can set the hash property to true. The nodes property can be set to a tree digest of the tree nodes you already
+have for this block or byte range. A request message has type <code>3</code>.</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Request</span> </span>{
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> block = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> <span class="hljs-built_in">bytes</span> = <span class="hljs-number">2</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">bool</span> hash = <span class="hljs-number">3</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> nodes = <span class="hljs-number">4</span>;
+}
+</code></pre>
+<h4 id="-4-data"><code>4</code> Data</h4>
+<p>Send a block of data to the other peer. You can use this message to reply to a request or optimistically send other blocks of data to the other client. It has type <code>4</code>.</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Data</span> </span>{
+  <span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Node</span> </span>{
+    <span class="hljs-keyword">required</span> <span class="hljs-built_in">uint64</span> index = <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">required</span> <span class="hljs-built_in">uint64</span> size = <span class="hljs-number">2</span>;
+    <span class="hljs-keyword">required</span> <span class="hljs-built_in">bytes</span> hash = <span class="hljs-number">3</span>;
+  }
+
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">uint64</span> block = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">bytes</span> value = <span class="hljs-number">2</span>;
+  <span class="hljs-keyword">repeated</span> Node nodes = <span class="hljs-number">3</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">bytes</span> signature = <span class="hljs-number">4</span>;
+}
+`
+</code></pre>
+<h4 id="-5-cancel"><code>5</code> Cancel</h4>
+<p>Cancel a previous sent request. It has type <code>5</code>.</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Cancel</span> </span>{
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> block = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint64</span> <span class="hljs-built_in">bytes</span> = <span class="hljs-number">2</span>;
+}
+</code></pre>
+<h4 id="-6-pause"><code>6</code> Pause</h4>
+<p>An empty message that tells the other peer that they should stop requesting new blocks of data. It has type <code>6</code>.</p>
+<h4 id="-7-resume"><code>7</code> Resume</h4>
+<p>An empty message that tells the other peer that they can continue requesting new blocks of data. It has type <code>7</code>.</p>
+</div>
+  </div>
+      </div>
+    </div>
+  </div>
+<script src="/bundle.js"></script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>dat</title>
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="/bundle.css">
+
+</head>
+<body>
+<div id="choo-root" class="minidocs">
+    <div class="_ece1ad43 minidocs-sidebar">
+    <div class="minidocs-header">
+      <h1><a href="/"><img src="dat-data.png" alt="dat" class="minidocs-logo" /></a></h1>
+    </div>
+    <div class="minidocs-contents">
+      <div class="h1 depth-1">Introduction</div><div class="depth-2">
+          <a href="/README" class="content-link ">Welcome to Dat</a>
+        </div><div class="depth-2">
+          <a href="/how-dat-works" class="content-link ">How Dat works</a>
+        </div><div class="h1 depth-1">Ecosystem</div><div class="depth-2">
+          <a href="/ecosystem" class="content-link ">Overview</a>
+        </div><div class="h1 depth-1">Specification</div><div class="depth-2">
+          <a href="/hyperdrive" class="content-link ">hyperdrive</a>
+        </div><div class="depth-2">
+          <a href="/meta.dat" class="content-link ">meta.dat</a>
+        </div><div class="h1 depth-1">References</div><div class="depth-2">
+          <a href="/api" class="content-link active">API</a>
+        </div><div class="depth-2">
+          <a href="/diy-dat" class="content-link ">DIY Dat</a>
+        </div>
+      <br />
+      <br />
+    </div>
+  </div>
+    <div class="_d13e94c1 minidocs-main">
+      <div class="markdown-body">
+        <div class="_b525f68d minidocs-content">
+    
+    <div><h2 id="1-0-architecture-design">1.0 Architecture Design</h2>
+<ul>
+<li>dat: command-line api</li>
+<li>dat-desk: desktop application</li>
+<li>hyperdrive: storage layer</li>
+<li>discovery-swarm: dat network swarm discovery mechanism</li>
+</ul>
+<h2 id="dat">dat</h2>
+<p>Command-line interface for dat</p>
+<h4 id="-dat-share-dir-"><code>dat share DIR</code></h4>
+<p>Create a new dat link for the contents of the given directory. Prints a URL, which is a unique public key feed. This public key feed can be appended to. </p>
+<h6 id="options">Options</h6>
+<ul>
+<li><code>--append=URL</code>: Adds the new URL to the public key feed.</li>
+<li><code>--static</code>: Ensures that the URL cannot be appended to.</li>
+</ul>
+<h4 id="-dat-url-dir-"><code>dat URL DIR</code></h4>
+<p>Downloads the link to the given directory, and then exits. </p>
+<h6 id="options">Options</h6>
+<ul>
+<li><code>--seed</code>: Downloads the link to the given directory and opens up a server that seeds it to the dat peer network.</li>
+<li><code>--list</code>: Fetches the metadata for the link and prints out the file list in the console.</li>
+</ul>
+</div>
+  </div>
+      </div>
+    </div>
+  </div>
+<script src="/bundle.js"></script>
+</body>
+</html>

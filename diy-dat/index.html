@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>dat</title>
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="/bundle.css">
+
+</head>
+<body>
+<div id="choo-root" class="minidocs">
+    <div class="_ece1ad43 minidocs-sidebar">
+    <div class="minidocs-header">
+      <h1><a href="/"><img src="dat-data.png" alt="dat" class="minidocs-logo" /></a></h1>
+    </div>
+    <div class="minidocs-contents">
+      <div class="h1 depth-1">Introduction</div><div class="depth-2">
+          <a href="/README" class="content-link ">Welcome to Dat</a>
+        </div><div class="depth-2">
+          <a href="/how-dat-works" class="content-link ">How Dat works</a>
+        </div><div class="h1 depth-1">Ecosystem</div><div class="depth-2">
+          <a href="/ecosystem" class="content-link ">Overview</a>
+        </div><div class="h1 depth-1">Specification</div><div class="depth-2">
+          <a href="/hyperdrive" class="content-link ">hyperdrive</a>
+        </div><div class="depth-2">
+          <a href="/meta.dat" class="content-link ">meta.dat</a>
+        </div><div class="h1 depth-1">References</div><div class="depth-2">
+          <a href="/api" class="content-link active">API</a>
+        </div><div class="depth-2">
+          <a href="/diy-dat" class="content-link ">DIY Dat</a>
+        </div>
+      <br />
+      <br />
+    </div>
+  </div>
+    <div class="_d13e94c1 minidocs-main">
+      <div class="markdown-body">
+        <div class="_b525f68d minidocs-content">
+    
+    <div><h1 id="diy-dat">DIY Dat</h1>
+<p>This document shows how to write your own compatible <code>dat</code> client using node modules.</p>
+<p>The three essential node modules are called <a href="https://npmjs.org/hyperdrive">hyperdrive</a>, <a href="https://npmjs.org/discovery-swarm">discovery-swarm</a> and <a href="https://npmjs.org/level">level</a>. Hyperdrive does file synchronization and versioning, discovery-swarm does peer discovery over local networks and the Internet, and level provides a local LevelDB for storing metadata. More details are available in <a href="how-dat-works.md">How Dat Works</a>. The <a href="https://npmjs.org/dat">dat</a> module itself is just some code that combines these modules and wraps them in a command-line API.</p>
+<p>Here&#39;s the minimal code needed to download data from a dat:</p>
+<pre><code class="lang-js"><span class="hljs-keyword">var</span> Swarm = <span class="hljs-built_in">require</span>(<span class="hljs-string">'discovery-swarm'</span>)
+<span class="hljs-keyword">var</span> Hyperdrive = <span class="hljs-built_in">require</span>(<span class="hljs-string">'hyperdrive'</span>)
+<span class="hljs-keyword">var</span> Level = <span class="hljs-built_in">require</span>(<span class="hljs-string">'level'</span>)
+
+<span class="hljs-comment">// run this like: node thisfile.js 4c325f7874b4070blahblahetc</span>
+<span class="hljs-comment">// the dat link someone sent us, we want to download the data from it</span>
+<span class="hljs-keyword">var</span> link = <span class="hljs-keyword">new</span> Buffer(process.argv[<span class="hljs-number">2</span>], <span class="hljs-string">'hex'</span>)
+
+<span class="hljs-comment">// here is the default config dat uses</span>
+<span class="hljs-comment">// used for MDNS and also as the dns 'app name', you prob shouldnt change this</span>
+<span class="hljs-keyword">var</span> DAT_DOMAIN = <span class="hljs-string">'dat.local'</span>
+<span class="hljs-comment">// dat will try this first and pick the first open port if its taken</span>
+<span class="hljs-keyword">var</span> DEFAULT_LOCAL_PORT = <span class="hljs-number">3282</span> 
+<span class="hljs-comment">// we run the servers below you can use if you want or run your own</span>
+<span class="hljs-keyword">var</span> DEFAULT_DISCOVERY = [
+  <span class="hljs-string">'discovery1.publicbits.org'</span>,
+  <span class="hljs-string">'discovery2.publicbits.org'</span>
+]
+<span class="hljs-keyword">var</span> DEFAULT_BOOTSTRAP = [
+  <span class="hljs-string">'bootstrap1.publicbits.org:6881'</span>,
+  <span class="hljs-string">'bootstrap2.publicbits.org:6881'</span>,
+  <span class="hljs-string">'bootstrap3.publicbits.org:6881'</span>,
+  <span class="hljs-string">'bootstrap4.publicbits.org:6881'</span>
+]
+
+<span class="hljs-keyword">var</span> db = Level(<span class="hljs-string">'./dat.db'</span>)
+<span class="hljs-keyword">var</span> drive = Hyperdrive(db)
+<span class="hljs-keyword">var</span> swarm = Swarm({
+  id: drive.core.id,
+  dns: {server: DEFAULT_DISCOVERY, domain: DAT_DOMAIN},
+  dht: {bootstrap: DEFAULT_BOOTSTRAP},
+  stream: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-comment">// this is how the swarm and hyperdrive interface</span>
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'new peer stream'</span>)
+    <span class="hljs-keyword">return</span> drive.createPeerStream()
+  }
+})
+
+swarm.once(<span class="hljs-string">'listening'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'joining'</span>, link)
+  <span class="hljs-comment">// join the swarm</span>
+  swarm.join(<span class="hljs-keyword">new</span> Buffer(link, <span class="hljs-string">'hex'</span>))
+  <span class="hljs-comment">// tell hyperdrive to start downloading/uploading in ./data</span>
+  <span class="hljs-keyword">var</span> archive = drive.get(link, process.cwd() + <span class="hljs-string">'/data'</span>)
+  archive.ready(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">err</span>) </span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'archive ready'</span>)
+    <span class="hljs-comment">// a stream of all metadata. after retrieving each entry metadata will be cached locally</span>
+    <span class="hljs-comment">// but the first time it has to fetch it from the swarm</span>
+    <span class="hljs-keyword">var</span> metadata = archive.createEntryStream()
+    <span class="hljs-comment">// start downloading all entries, or choose your own filter logic to download specific entries</span>
+    <span class="hljs-comment">// entries will be either files or directories</span>
+    metadata.on(<span class="hljs-string">'data'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">entry</span>) </span>{
+      <span class="hljs-keyword">var</span> dl = archive.download(entry)
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'downloading'</span>, entry.name, dl)
+
+      dl.on(<span class="hljs-string">'ready'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'download started'</span>, entry.name, dl)
+      })
+    })
+  })
+})
+
+swarm.listen(DEFAULT_LOCAL_PORT)
+</code></pre>
+</div>
+  </div>
+      </div>
+    </div>
+  </div>
+<script src="/bundle.js"></script>
+</body>
+</html>

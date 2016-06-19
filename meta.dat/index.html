@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>dat</title>
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="/bundle.css">
+
+</head>
+<body>
+<div id="choo-root" class="minidocs">
+    <div class="_ece1ad43 minidocs-sidebar">
+    <div class="minidocs-header">
+      <h1><a href="/"><img src="dat-data.png" alt="dat" class="minidocs-logo" /></a></h1>
+    </div>
+    <div class="minidocs-contents">
+      <div class="h1 depth-1">Introduction</div><div class="depth-2">
+          <a href="/README" class="content-link ">Welcome to Dat</a>
+        </div><div class="depth-2">
+          <a href="/how-dat-works" class="content-link ">How Dat works</a>
+        </div><div class="h1 depth-1">Ecosystem</div><div class="depth-2">
+          <a href="/ecosystem" class="content-link ">Overview</a>
+        </div><div class="h1 depth-1">Specification</div><div class="depth-2">
+          <a href="/hyperdrive" class="content-link ">hyperdrive</a>
+        </div><div class="depth-2">
+          <a href="/meta.dat" class="content-link ">meta.dat</a>
+        </div><div class="h1 depth-1">References</div><div class="depth-2">
+          <a href="/api" class="content-link active">API</a>
+        </div><div class="depth-2">
+          <a href="/diy-dat" class="content-link ">DIY Dat</a>
+        </div>
+      <br />
+      <br />
+    </div>
+  </div>
+    <div class="_d13e94c1 minidocs-main">
+      <div class="markdown-body">
+        <div class="_b525f68d minidocs-content">
+    
+    <div><h1 id="meta-dat">meta.dat</h1>
+<p>Dat uses a simple metadata file called <code>meta.dat</code>. The purpose of this file is to store the fingerprints of the files in a Dat repository. If you create a <code>meta.dat</code> file for a set of files, you can host it on a static HTTP server along with the files and Dat clients will be able to download and verify your files, even if you aren&#39;t running a Dat server!</p>
+<h1 id="file-format">File format</h1>
+<pre><code><span class="hljs-section">&lt;Header&gt;</span><span class="hljs-section">&lt;Entries Index...&gt;</span><span class="hljs-section">&lt;Entries...&gt;</span>
+</code></pre><p>The format is a header followed by an index of many entries. Entry order is based on the indexing determined by the <a href="hyperdrive.md#flat-in-order-trees">Flat In-Order Tree</a> algorithm we use in Dat. After the entry index, a concatinated list of entries follows.</p>
+<h3 id="header-format">Header format</h3>
+<pre><code><span class="hljs-section">&lt;varint header-length&gt;</span><span class="hljs-section">&lt;header protobuf&gt;</span>
+</code></pre><p>The header protobuf has this schema:</p>
+<pre><code class="lang-protobuf"><span class="hljs-class"><span class="hljs-keyword">message</span> <span class="hljs-title">Header</span> </span>{
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">bytes</span> datLink = <span class="hljs-number">1</span>;
+  <span class="hljs-keyword">required</span> <span class="hljs-built_in">uint64</span> entries = <span class="hljs-number">2</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">bool</span> isSigned = <span class="hljs-number">3</span>;
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">string</span> hashType = <span class="hljs-number">4</span> [default = <span class="hljs-string">"sha256"</span>];
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint32</span> hashLength = <span class="hljs-number">5</span> [default = <span class="hljs-number">32</span>];
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">string</span> signatureType = <span class="hljs-number">6</span> [default = <span class="hljs-string">"ed25519"</span>];
+  <span class="hljs-keyword">optional</span> <span class="hljs-built_in">uint32</span> signatureLength = <span class="hljs-number">7</span> [default = <span class="hljs-number">64</span>];
+}
+</code></pre>
+<h3 id="entry-index-format">Entry index format</h3>
+<p>For non-signed entries:</p>
+<pre><code><span class="hljs-section">&lt;8-byte-chunk-end&gt;</span><span class="hljs-section">&lt;chunk-hash&gt;</span>
+</code></pre><p>The 8-byte-chunk-end is an unsigned big endian 64 bit integer that should be the absolute position in the file for the <strong>end of the chunk</strong>.</p>
+<p>For signed entries in live feeds (only applies to even numbered nodes e.g. leaf nodes):</p>
+<pre><code><span class="hljs-section">&lt;8-byte-chunk-end&gt;</span><span class="hljs-section">&lt;chunk-signature&gt;</span><span class="hljs-section">&lt;chunk-hash&gt;</span>
+</code></pre><p>For any odd nodes, in either a live or a non-live feed, the non-signed entry format will be used.</p>
+<h2 id="example">Example</h2>
+<p>Given a tree like this you might want to look up in a <code>meta.dat</code> file the metadata for a specific node:</p>
+<pre><code>0─┐  
+  1─┐
+2─┘ │
+    3
+4─┐ │
+  5─┘
+6─┘
+</code></pre><p>If you wanted to look up the metadata for 3, you could read the third (or any!) entry from meta.dat:</p>
+<p>First you have to read the varint at the beginning of the file so you know how big the header is:</p>
+<pre><code class="lang-js"><span class="hljs-keyword">var</span> varint = <span class="hljs-built_in">require</span>(<span class="hljs-string">'varint'</span>) <span class="hljs-comment">// https://github.com/chrisdickinson/varint</span>
+<span class="hljs-keyword">var</span> headerLength = varint.decode(firstChunkOfFile)
+</code></pre>
+<p>Now you can read the header from the file</p>
+<pre><code class="lang-js"><span class="hljs-keyword">var</span> headerOffset = varint.encodingLength(headerLength)
+<span class="hljs-keyword">var</span> headerEndOffset = headerOffset + headerLength
+<span class="hljs-keyword">var</span> headerBytes = firstChunkOfFile.slice(headerOffset, headerEndOffset)
+</code></pre>
+<p>To decode the header use the protobuf schema. We can use the <a href="https://github.com/mafintosh/protocol-buffers">protocol-buffers</a> module to do that.</p>
+<pre><code class="lang-js"><span class="hljs-keyword">var</span> messages = <span class="hljs-built_in">require</span>(<span class="hljs-string">'protocol-buffers'</span>)(fs.readFileSync(<span class="hljs-string">'meta.dat.proto'</span>))
+<span class="hljs-keyword">var</span> header = messages.Header.decode(headerBytes)
+</code></pre>
+<p>Now we have all the configuration required to calculate an entry offset.</p>
+<pre><code class="lang-js"><span class="hljs-keyword">var</span> entryNumber = <span class="hljs-number">42</span>
+<span class="hljs-keyword">var</span> entryOffset = headerEndOffset + entryNumber * (<span class="hljs-number">8</span> + header.hashLength)
+</code></pre>
+<p>If you have a signed feed, you have to take into account the extra space required for the signatures in the even nodes.</p>
+<pre><code class="lang-js"><span class="hljs-keyword">var</span> entryOffset = headerLength + entryNumber * (<span class="hljs-number">8</span> + header.hashLength)
+                  + <span class="hljs-built_in">Math</span>.floor(entryNumber / <span class="hljs-number">2</span>) * header.signatureLength
+</code></pre>
+</div>
+  </div>
+      </div>
+    </div>
+  </div>
+<script src="/bundle.js"></script>
+</body>
+</html>
