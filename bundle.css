@@ -14,14 +14,14 @@
     ._b525f68d a.markdown-link:hover {
       color: #4078c0;
       border: 1px solid #4078c0;
-    }._d13e94c1 {
+    }._af8ae1c9 {
       width: 56%;
       height: 529.5px;
-      padding: 117.9px 10% 70.6px 6%;
+      padding: 125.9px 10% 70.6px 6%;
       vertical-align: top;
       display: inline-block;
       margin-left: 28%;
-    }._ece1ad43 {
+    }._9d3a6acf {
       width: 24%;
       padding: 0px 20px 20px 35px;
       display: inline-block;
@@ -34,45 +34,46 @@
       bottom: 0;
     }
 
-    ._ece1ad43 .minidocs-logo {
+    ._9d3a6acf .minidocs-logo {
       width: 100%;
       max-width: 250px;
     }
 
-    ._ece1ad43 .minidocs-header {
+    ._9d3a6acf .minidocs-header {
       height: 105px;
     }
 
-    ._ece1ad43 .h1 {
+    ._9d3a6acf .h1 {
       display: block;
       font-size: 2em;
       font-weight: bold;
-      margin-top: 10px;
+      margin-top: 16px;
+      margin-bottom: 16px;
     }
 
-    ._ece1ad43 .h1:before {
+    ._9d3a6acf .h1:before {
       content: '# '
     }
 
-    ._ece1ad43 h1 a {
+    ._9d3a6acf h1 a {
       color: #505050;
       text-decoration: none;
     }
 
-    ._ece1ad43 h1 a:hover {
+    ._9d3a6acf h1 a:hover {
       color: #222;
     }
 
-    ._ece1ad43 .h2 {
+    ._9d3a6acf .h2 {
       display: block;
       font-size: 1.5em;
       font-weight: bold;
-      margin-top: 6px;
-      margin-bottom: 4px;
+      margin-top: 12px;
+      margin-bottom: 12px;
     }
 
-    ._ece1ad43 a.content-link {
-      padding: 5px 8px 5px 5px;
+    ._9d3a6acf a.content-link {
+      padding: 2px 8px 2px 5px;
       margin-bottom: 1px;
       cursor: pointer;
       text-decoration: none;
@@ -81,9 +82,9 @@
       border-left: 3px solid #eee;
     }
 
-    ._ece1ad43 a.content-link.active, ._ece1ad43 a.content-link:hover {
+    ._9d3a6acf a.content-link.active, ._9d3a6acf a.content-link:hover {
       background-color: #fff;
-      border-left: 3px solid #aaa;
+      border-left: 3px solid rgb(200,200,200);
     }body {
   font-family: 'clear_sans_thinregular';
   color: rgb(80,80,80);
