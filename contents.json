@@ -1,6 +1,6 @@
 {
   "Introduction": {
-    "Welcome to Dat": "README.md",
+    "Welcome to Dat": "index.md",
     "How Dat works": "how-dat-works.md"
   },
   "Ecosystem": {
@@ -12,6 +12,7 @@
   },
   "References": {
     "API": "api.md",
-    "DIY Dat": "diy-dat.md"
+    "DIY Dat": "diy-dat.md",
+    "Building Docs": "README.md"
   }
 }
