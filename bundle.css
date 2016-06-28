@@ -14,15 +14,15 @@
     ._b525f68d a.markdown-link:hover {
       color: #4078c0;
       border: 1px solid #4078c0;
-    }._af8ae1c9 {
-      width: 56%;
+    }._3b73b4b8 {
+      width: 58%;
       height: 529.5px;
       padding: 125.9px 10% 70.6px 6%;
       vertical-align: top;
       display: inline-block;
-      margin-left: 28%;
-    }._9d3a6acf {
-      width: 24%;
+      margin-left: 24%;
+    }._8680596b {
+      width: 21%;
       padding: 0px 20px 20px 35px;
       display: inline-block;
       padding-bottom: 3%;
@@ -34,16 +34,16 @@
       bottom: 0;
     }
 
-    ._9d3a6acf .minidocs-logo {
+    ._8680596b .minidocs-logo {
       width: 100%;
       max-width: 250px;
     }
 
-    ._9d3a6acf .minidocs-header {
+    ._8680596b .minidocs-header {
       height: 105px;
     }
 
-    ._9d3a6acf .h1 {
+    ._8680596b .h1 {
       display: block;
       font-size: 2em;
       font-weight: bold;
@@ -51,20 +51,20 @@
       margin-bottom: 16px;
     }
 
-    ._9d3a6acf .h1:before {
+    ._8680596b .h1:before {
       content: '# '
     }
 
-    ._9d3a6acf h1 a {
+    ._8680596b h1 a {
       color: #505050;
       text-decoration: none;
     }
 
-    ._9d3a6acf h1 a:hover {
+    ._8680596b h1 a:hover {
       color: #222;
     }
 
-    ._9d3a6acf .h2 {
+    ._8680596b .h2 {
       display: block;
       font-size: 1.5em;
       font-weight: bold;
@@ -72,7 +72,7 @@
       margin-bottom: 12px;
     }
 
-    ._9d3a6acf a.content-link {
+    ._8680596b a.content-link {
       padding: 2px 8px 2px 5px;
       margin-bottom: 1px;
       cursor: pointer;
@@ -82,7 +82,7 @@
       border-left: 3px solid #eee;
     }
 
-    ._9d3a6acf a.content-link.active, ._9d3a6acf a.content-link:hover {
+    ._8680596b a.content-link.active, ._8680596b a.content-link:hover {
       background-color: #fff;
       border-left: 3px solid rgb(200,200,200);
     }body {
