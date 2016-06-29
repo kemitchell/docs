@@ -15,9 +15,9 @@
     </div>
     <div class="minidocs-contents">
       <div class="h1">Introduction</div><div>
-          <a href="/welcome" class="content-link ">Welcome to Dat</a>
+          <a href="/welcome" class="content-link active">Welcome to Dat</a>
         </div><div>
-          <a href="/how-dat-works" class="content-link ">How Dat works</a>
+          <a href="/how-dat-works" class="content-link ">How Dat Works</a>
         </div><div class="h1">Ecosystem</div><div>
           <a href="/ecosystem" class="content-link ">Overview</a>
         </div><div class="h1">Specification</div><div>
@@ -25,7 +25,7 @@
         </div><div>
           <a href="/meta.dat" class="content-link ">meta.dat</a>
         </div><div class="h1">References</div><div>
-          <a href="/api" class="content-link active">API</a>
+          <a href="/api" class="content-link ">API</a>
         </div><div>
           <a href="/diy-dat" class="content-link ">DIY Dat</a>
         </div>
@@ -37,28 +37,27 @@
       <div class="markdown-body">
         <div class="_b525f68d minidocs-content">
     
-    <div><h2 id="1-0-architecture-design">1.0 Architecture Design</h2>
+    <div><h1 id="dat">dat</h1>
+<p>Dat is a decentralized data tool for distributing data small and large.</p>
+<p><a href="http://webchat.freenode.net/?channels=dat"><img src="https://img.shields.io/badge/irc%20channel-%23dat%20on%20freenode-blue.svg" alt="#dat IRC channel on freenode"></a>
+<a href="https://gitter.im/datproject/discussions?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Join%20Chat.svg" alt="datproject/discussions"></a>
+<a href="http://docs.dat-data.com"><img src="https://img.shields.io/badge/Dat%20Project-Docs-green.svg" alt="docs"></a></p>
+<h2 id="about-dat">About Dat</h2>
+<p>Documentation for the Dat project is available at <a href="http://docs.dat-data.com">docs.dat-data.com</a>.</p>
+<h3 id="key-features-">Key features:</h3>
 <ul>
-<li>dat: command-line api</li>
-<li>dat-desk: desktop application</li>
-<li>hyperdrive: storage layer</li>
-<li>discovery-swarm: dat network swarm discovery mechanism</li>
+<li><strong>Live sync</strong> folders by sharing files as they are added to the folder.</li>
+<li><strong>Distribute large files</strong> without copying data to a central server by connecting directly to peers.</li>
+<li><strong>Intelligently sync</strong> by deduplicating data between versions.</li>
+<li><strong>Verify data integrity</strong> using strong cryptographic hashes.</li>
+<li><strong>Work everywhere</strong>, including in the <a href="https://github.com/datproject/dat.land">browser</a> and on the <a href="https://github.com/juliangruber/dat-desktop">desktop</a>.</li>
 </ul>
-<h2 id="dat">dat</h2>
-<p>Command-line interface for dat</p>
-<h4 id="-dat-share-dir-"><code>dat share DIR</code></h4>
-<p>Create a new dat link for the contents of the given directory. Prints a URL, which is a unique public key feed. This public key feed can be appended to. </p>
-<h6 id="options">Options</h6>
+<p>Dat embraces the Unix philosophy: a modular design with composable parts. All of the pieces can be replaced with alternative implementations as long as they implement the abstract API.</p>
+<h3 id="ways-to-use-dat">Ways to Use Dat</h3>
 <ul>
-<li><code>--append=URL</code>: Adds the new URL to the public key feed.</li>
-<li><code>--static</code>: Ensures that the URL cannot be appended to.</li>
-</ul>
-<h4 id="-dat-url-dir-"><code>dat URL DIR</code></h4>
-<p>Downloads the link to the given directory, and then exits. </p>
-<h6 id="options">Options</h6>
-<ul>
-<li><code>--seed</code>: Downloads the link to the given directory and opens up a server that seeds it to the dat peer network.</li>
-<li><code>--list</code>: Fetches the metadata for the link and prints out the file list in the console.</li>
+<li><a href="https://github.com/maxogden/dat">Dat CLI</a>: command line tool</li>
+<li><a href="https://github.com/juliangruber/dat-desktop/">Dat Desktop</a>: desktop application</li>
+<li><a href="https://github.com/datproject/dat.land">dat.land</a>: website application</li>
 </ul>
 </div>
   </div>
