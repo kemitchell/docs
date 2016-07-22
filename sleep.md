@@ -109,7 +109,7 @@ The above representation of the tree is in hierarchical object notation. However
 
 ![Figure 4](./diagrams/sleep-4.png)
 
-# File format
+# File Format
 
 SLEEP files should be named `sleep.dat` and have the following format:
 
@@ -119,7 +119,7 @@ SLEEP files should be named `sleep.dat` and have the following format:
 
 The format is a header followed by the register index. Order of the index is determined by an in-order node traversal. After the register index, the actual register entry data follows. The header length is variable width, prefixed with a varint. The Register Index is composed of fixed width metadata entries. The Register Data is composed of concatenated non-fixed width data pieces.
 
-### Header format
+### Header Format
 
 ```
 <varint header-length><header protobuf>
@@ -139,7 +139,7 @@ message Header {
 }
 ```
 
-### Register Index format
+### Register Index Format
 
 For non-signed even (leaf) nodes:
 
