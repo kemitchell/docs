@@ -147,7 +147,7 @@ For non-signed even (leaf) nodes:
 <8-byte-span-length><data-hash>
 ```
 
-The 8-byte-span-length is an unsigned big-endian 64 bit integer that should be number of cumulative bytes encompassed by all of the leaf nodes underneath the current node.
+The 8-byte-span-length is an unsigned, big-endian, 64-bit integer that should be number of cumulative bytes encompassed by all of the leaf nodes underneath the current node.
 
 For signed even (leaf) nodes:
 
@@ -161,7 +161,7 @@ For odd (non-leaf) nodes:
 <8-byte-end-offset><data-hash>
 ```
 
-The 8-byte-end-offset is an unsigned big-endian 64 bit integer that should be the absolute position in the file for the **end** of the piece data described by this node.
+The 8-byte-end-offset is an unsigned, big-endian, 64-bit integer that should be the absolute position in the file for the **end** of the piece of data described by this node.
 
 ### Register Data
 
