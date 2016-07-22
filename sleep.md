@@ -173,15 +173,8 @@ For the example tree above, the Register Data section would simply be `abcd`.
 
 Given a tree like this you might want to look up in a `meta.dat` file the metadata for a specific node:
 
-```
-0─┐  
-  1─┐
-2─┘ │
-    3
-4─┐ │
-  5─┘
-6─┘
-```
+![Figure 5](./diagrams/sleep-2.png)
+
 
 If you wanted to look up the metadata for 3, you could read the third (or any!) entry from meta.dat:
 
