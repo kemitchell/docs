@@ -65,7 +65,7 @@ All non-leaf nodes contain these three pieces of information:
 - The cryptographic signature of the hash
 - The span of bytes that the the nodes children cover
 
-When initializing a register an asymmetric Ed25519 keypair is derived. The private key is never shared. The public key is used as the URL for the register. When signing hashes in the tree the public key is used to generate an EdDSA signature. For the example register above, 'abcd', the register index (in pseudocode) would be:
+When initializing a register an asymmetric Ed25519 key pair is derived. The private key is never shared. The public key is used as the URL for the register. When signing hashes in the tree the public key is used to generate an EdDSA signature. For the example register above, 'abcd', the register index (in pseudocode) would be:
 
 ```js
 var keys = {
@@ -159,7 +159,7 @@ For non-signed even (leaf) nodes:
 <8-byte-span-length><data-hash>
 ```
 
-The 8-byte-span-length is an unsigned big endian 64 bit integer that should be number of cumulative bytes encompassed by all of the leaf nodes underneath the current node.
+The 8-byte-span-length is an unsigned big-endian 64 bit integer that should be number of cumulative bytes encompassed by all of the leaf nodes underneath the current node.
 
 For signed even (leaf) nodes:
 
@@ -173,7 +173,7 @@ For odd (non-leaf) nodes:
 <8-byte-end-offset><data-hash>
 ```
 
-The 8-byte-end-offset is an unsigned big endian 64 bit integer that should be the absolute position in the file for the **end** of the piece data described by this node.
+The 8-byte-end-offset is an unsigned big-endian 64 bit integer that should be the absolute position in the file for the **end** of the piece data described by this node.
 
 ### Register Data
 
