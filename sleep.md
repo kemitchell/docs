@@ -117,7 +117,7 @@ SLEEP files should be named `sleep.dat` and have the following format:
 <Header><Register Index...><Register Data...>
 ```
 
-The format is a header followed by the register index. Order of the index is determined by an in-order node traversal. After the register index, the actual register entry data follows. The header length is variable width, prefixed with a varint. The Register Index is composed of fixed width metadata entries. The Register Data is composed of concatenated non-fixed width data pieces.
+The format is a header followed by the register index. Order of the index is determined by an in-order node traversal. After the register index, the actual register entry data follows. The header length is variable width, prefixed with a varint. The Register Index is composed of fixed width metadata entries. The Register Data is composed of concatenated variable-width data pieces.
 
 ### Header Format
 
