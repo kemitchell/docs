@@ -175,8 +175,7 @@ Given a tree like this you might want to look up in a `meta.dat` file the metada
 
 ![Figure 5](./diagrams/sleep-2.png)
 
-
-If you wanted to look up the metadata for 3, you could read the third (or any!) entry from meta.dat:
+If you wanted to look up the metadata for the third data piece, you could read the third entry from meta.dat:
 
 First you have to read the varint at the beginning of the file so you know how big the header is:
 
@@ -203,7 +202,7 @@ var header = messages.Header.decode(headerBytes)
 Now we have all the configuration required to calculate an entry offset.
 
 ``` js
-var entryNumber = 42
+var entryNumber = 3
 var entryOffset = headerEndOffset + entryNumber * (8 + header.hashLength)
 ```
 
