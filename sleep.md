@@ -28,27 +28,11 @@ To construct the register itself you concatenate all buffers, in this case resul
 
 The register index is constructed by creating a Merkle tree where the leaf nodes are the hash of our four values, and the rest of the nodes are the hash of the nodes two children hashes concatenated together.
 
-```
-hash(a)
-      > hash(hash(a) + hash(b))
-hash(b)
-              > hash(hash(hash(a) + hash(b)) + hash(hash(c) + hash(d)))
-hash(c)
-      > hash(hash(c) + hash(d))
-hash(d)
-```
+![Figure 1](./diagrams/sleep-1.png)
 
 To be able to refer to a specific node in the tree we use an in-order node traversal to assign integers to the nodes:
 
-```
-0
-  1
-2
-    3
-4
-  5
-6
-```
+![Figure 2](./diagrams/sleep-2.png)
 
 In-order node numbering has the property with our trees that leaf nodes are always even and non-leaf nodes are always odd. This can be used as a quick way to identify whether a node is a leaf or not.
 
@@ -64,6 +48,8 @@ All non-leaf nodes contain these three pieces of information:
 - The sha256 hash of the concatenation of the two children hashes
 - The cryptographic signature of the hash
 - The span of bytes that the nodes children cover
+
+![Figure 3](./diagrams/sleep-3.png)
 
 When initializing a register an asymmetric Ed25519 key pair is derived. The private key is never shared. The public key is used as the URL for the register. When signing hashes in the tree the public key is used to generate an EdDSA signature. For the example register above, 'abcd', the register index (in pseudocode) would be:
 
@@ -120,6 +106,8 @@ var index = {
 ```
 
 The above representation of the tree is in hierarchical object notation. However due to the properties of the in-order node indexes we can represent the same data in a flat index while still allowing traversals.
+
+![Figure 4](./diagrams/sleep-4.png)
 
 # File format
 

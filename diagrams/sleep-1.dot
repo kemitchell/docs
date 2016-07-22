@@ -1,0 +1,19 @@
+digraph {
+  node[shape=rectangle];
+  3[label="Hash(Hash(Hash(a) + Hash(b)) + Hash(Hash(c) + Hash(d)))"];
+  1[label="Hash(Hash(a) + Hash(b))"];
+  5[label="Hash(Hash(c) + Hash(d))"];
+  0[label="Hash(a)"];
+  2[label="Hash(b)"];
+  4[label="Hash(c)"];
+  6[label="Hash(d)"];
+
+  3 -> 1;
+  3 -> 5;
+
+  1 -> 0;
+  1 -> 2;
+
+  5 -> 4;
+  5 -> 6;
+}

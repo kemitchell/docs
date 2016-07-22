@@ -1,0 +1,22 @@
+digraph {
+  node[shape=rectangle];
+  /* Branch Nodes */
+  3[label=<3<BR/>Hash<SUB>3</SUB>: SHA-256(Hash<SUB>1</SUB> Hash<SUB>5</SUB>)<BR/>EdDSA(Register Key, Hash<SUB>3</SUB>)<BR/>Span<SUB>3</SUB>: Span<SUB>1</SUB> + Span<SUB>5</SUB>>];
+  1[label=<1<BR/>Hash<SUB>1</SUB>: SHA-256(Hash<SUB>0</SUB> Hash<SUB>2</SUB>)<BR/>EdDSA(Register Key, Hash<SUB>1</SUB>)<BR/>Span<SUB>1</SUB>: Bytes("a") + Bytes("b")>];
+  5[label=<5<BR/>Hash<SUB>5</SUB>: SHA-256(Hash<SUB>4</SUB> Hash<SUB>6</SUB>)<BR/>EdDSA(Register Key, Hash<SUB>5</SUB>)<BR/>Span<SUB>5</SUB>: Bytes("c") + Bytes("d")>];
+
+  /* Leaf Nodes */
+  0[label=<0<BR/>Hash<SUB>0</SUB>: SHA-256("a")<BR/>Byte offset to end of "a">];
+  2[label=<2<BR/>Hash<SUB>2</SUB>: SHA-256("b")<BR/>Byte offset to end of "b">];
+  4[label=<4<BR/>Hash<SUB>4</SUB>: SHA-256("c")<BR/>Byte offset to end of "c">];
+  6[label=<6<BR/>Hash<SUB>6</SUB>: SHA-256("d")<BR/>Byte offset to end of "d">];
+
+  3 -> 1;
+  3 -> 5;
+
+  1 -> 0;
+  1 -> 2;
+
+  5 -> 4;
+  5 -> 6;
+}
