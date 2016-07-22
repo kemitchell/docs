@@ -63,7 +63,7 @@ All non-leaf nodes contain these three pieces of information:
 
 - The sha256 hash of the concatenation of the two children hashes
 - The cryptographic signature of the hash
-- The span of bytes that the the nodes children cover
+- The span of bytes that the nodes children cover
 
 When initializing a register an asymmetric Ed25519 key pair is derived. The private key is never shared. The public key is used as the URL for the register. When signing hashes in the tree the public key is used to generate an EdDSA signature. For the example register above, 'abcd', the register index (in pseudocode) would be:
 
